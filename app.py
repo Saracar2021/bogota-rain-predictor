@@ -23,7 +23,10 @@ st.markdown("**Sistema basado en datos del SAB (Sistema de Alerta de Bogotá - I
 
 # Constantes
 CKAN_BASE_URL = "https://datosabiertos.bogota.gov.co/api/3/action"
-LLUVIA_RESOURCE_ID = "0f8e12d2-2115-49e2-9a05-1cfb55d26283"
+
+# IDs de recursos actualizados (verificados 2025-12-16)
+LLUVIA_RESOURCE_ID = "28d3ab6b-c0dd-478e-ada9-cebdfed1387c"  # Lluvia Sep 2021 - Jun 2025
+CATALOGO_ESTACIONES_ID = "196dca9c-36e6-451b-8cb5-64edfe874f84"  # Catálogo de estaciones
 
 # Coordenadas de referencia de Bogotá
 BOGOTA_CENTER = [4.6533, -74.0836]
@@ -63,18 +66,20 @@ def obtener_datos_lluvia():
 def obtener_catalogo_estaciones():
     """Obtiene el catálogo de estaciones hidrometeorológicas"""
     try:
-        url = f"{CKAN_BASE_URL}/package_search"
+        url = f"{CKAN_BASE_URL}/datastore_search"
         params = {
-            "q": "Catalogo Estaciones Hidrometeorológicas",
-            "rows": 1
+            "resource_id": CATALOGO_ESTACIONES_ID,
+            "limit": 100
         }
         
         response = requests.get(url, params=params, timeout=10, verify=False)
         
         if response.status_code == 200:
             data = response.json()
-            if data.get('success') and data['result']['results']:
-                return data['result']['results']
+            if data.get('success'):
+                records = data['result']['records']
+                df = pd.DataFrame(records)
+                return df
         return None
     except Exception as e:
         st.warning(f"No se pudo obtener el catálogo de estaciones: {str(e)}")
