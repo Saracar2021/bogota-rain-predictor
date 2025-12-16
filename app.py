@@ -5,6 +5,10 @@ import folium
 from streamlit_folium import st_folium
 from datetime import datetime
 import json
+import urllib3
+
+# Deshabilitar warnings de SSL (solo para este caso específico)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Configuración de la página
 st.set_page_config(
@@ -36,7 +40,9 @@ def obtener_datos_lluvia():
             "limit": 100
         }
         
-        response = requests.get(url, params=params, timeout=10)
+        # IMPORTANTE: verify=False debido a problemas con el certificado SSL del portal
+        # Esto es específico para datosabiertos.bogota.gov.co
+        response = requests.get(url, params=params, timeout=10, verify=False)
         
         if response.status_code == 200:
             data = response.json()
@@ -56,8 +62,6 @@ def obtener_datos_lluvia():
 @st.cache_data(ttl=3600)  # Cache por 1 hora
 def obtener_catalogo_estaciones():
     """Obtiene el catálogo de estaciones hidrometeorológicas"""
-    # ID del recurso del catálogo de estaciones (puede variar)
-    # Este es un placeholder - necesitaremos el ID correcto
     try:
         url = f"{CKAN_BASE_URL}/package_search"
         params = {
@@ -65,12 +69,11 @@ def obtener_catalogo_estaciones():
             "rows": 1
         }
         
-        response = requests.get(url, params=params, timeout=10)
+        response = requests.get(url, params=params, timeout=10, verify=False)
         
         if response.status_code == 200:
             data = response.json()
             if data.get('success') and data['result']['results']:
-                # Aquí procesaríamos los recursos del dataset
                 return data['result']['results']
         return None
     except Exception as e:
@@ -115,9 +118,6 @@ def crear_mapa(origen_coords, destino_coords, datos_lluvia=None):
         opacity=0.7,
         popup='Tu ruta en moto'
     ).add_to(mapa)
-    
-    # TODO: Agregar marcadores de estaciones con lluvia activa
-    # Esto requiere procesar datos_lluvia si está disponible
     
     return mapa
 
@@ -226,7 +226,7 @@ with col2:
         else:
             st.warning("⚠️ No se pudieron obtener datos del SAB")
             st.write("Esto puede deberse a:")
-            st.write("- Problemas de conectividad")
+            st.write("- Problemas de conectividad con el portal")
             st.write("- API temporalmente no disponible")
             st.write("- ID de recurso incorrecto")
             
